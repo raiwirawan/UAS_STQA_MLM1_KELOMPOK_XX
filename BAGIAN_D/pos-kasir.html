@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aplikasi POS — PT Maju Bersama</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:   #0A1628; --navy2:  #0D2137; --navy3:  #1A2E48;
+  --accent: #1C9AAF; --accent2:#27B2A0;
+  --white:  #FFFFFF; --off:    #F0F6FA;  --muted:  #7A8FA0;
+  --border: #1E3555; --text:   #D0DDE8;  --text2:  #7A8FA0;
+  --green:  #1A8A4A; --lgreen: #E4F5EC;
+  --red:    #C0392B; --lred:   #FDE8E4;
+  --amber:  #D4820A; --lamber: #FFF3CD;
+  --purple: #6C3483; --lpurp:  #F4ECF7;
+  --lgray:  #F5F5F5;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--navy);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(28,154,175,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(28,154,175,0.04) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+
+/* NAV */
+nav{position:relative;z-index:10;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(10,22,40,0.9);backdrop-filter:blur(12px)}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-mark{width:30px;height:30px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:white}
+.logo-text{font-size:14px;font-weight:600;color:var(--white)}
+.logo-sub{font-size:10px;color:var(--muted)}
+.nav-right{display:flex;align-items:center;gap:12px}
+.nav-badge{font-family:'DM Mono',monospace;font-size:10px;padding:3px 9px;border:1px solid var(--border);border-radius:20px;color:var(--accent)}
+.kasir-info{font-size:12px;color:var(--muted)}
+.kasir-info span{color:var(--accent);font-weight:600}
+
+/* LAYOUT */
+main{flex:1;display:grid;grid-template-columns:1fr 380px;gap:0;position:relative;z-index:1;height:calc(100vh - 57px)}
+
+/* LEFT — KERANJANG */
+.panel-kiri{padding:20px;overflow-y:auto;border-right:1px solid var(--border)}
+.section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:12px}
+
+/* INPUT PRODUK */
+.input-produk{display:flex;gap:8px;margin-bottom:20px}
+.form-input{flex:1;padding:10px 13px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:var(--white);outline:none;transition:border-color .15s,box-shadow .15s}
+.form-input::placeholder{color:var(--muted)}
+.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(28,154,175,0.15)}
+.form-input.error{border-color:var(--red);box-shadow:0 0 0 3px rgba(192,57,43,0.15)}
+.input-qty{width:80px;flex:none}
+.btn{padding:10px 16px;border:none;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s,transform .1s}
+.btn:hover:not(:disabled){opacity:.9;transform:translateY(-1px)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-accent{background:linear-gradient(135deg,var(--accent),var(--accent2));color:white}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-outline:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.btn-red{background:var(--red);color:white}
+.btn-sm{padding:6px 11px;font-size:12px}
+
+/* PESAN */
+.pesan-error{display:none;padding:9px 13px;background:var(--lred);border:1px solid rgba(192,57,43,0.3);border-left:3px solid var(--red);border-radius:7px;font-size:12px;color:var(--red);margin-bottom:12px;gap:7px;align-items:flex-start}
+.pesan-error.visible{display:flex}
+.pesan-success{display:none;padding:9px 13px;background:var(--lgreen);border:1px solid rgba(26,138,74,0.3);border-left:3px solid var(--green);border-radius:7px;font-size:12px;color:var(--green);margin-bottom:12px;gap:7px;align-items:flex-start}
+.pesan-success.visible{display:flex}
+
+/* TABEL KERANJANG */
+.tabel-keranjang{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.tabel-keranjang th{background:var(--navy3);color:var(--muted);font-weight:500;text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.tabel-keranjang td{padding:9px 10px;border-bottom:1px solid rgba(30,53,85,0.5);vertical-align:middle}
+.tabel-keranjang tr:hover td{background:rgba(255,255,255,0.02)}
+.tabel-keranjang tr.empty td{text-align:center;color:var(--muted);font-size:13px;padding:32px}
+.item-nama{font-weight:500;color:var(--white);font-size:13px}
+.item-kode{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)}
+.badge-diskon{display:inline-block;padding:2px 6px;background:rgba(27,183,100,0.15);border-radius:4px;font-size:10px;color:var(--green);margin-left:5px;font-family:'DM Mono',monospace}
+.hapus-btn{background:transparent;border:1px solid rgba(192,57,43,0.3);border-radius:5px;color:var(--red);padding:4px 8px;font-size:11px;cursor:pointer;transition:all .15s}
+.hapus-btn:hover{background:var(--red);color:white}
+
+/* RIGHT — RINGKASAN */
+.panel-kanan{background:var(--navy2);padding:20px;display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+
+/* MEMBER */
+.member-row{display:flex;align-items:center;gap:10px;padding:10px 13px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px}
+.member-row label{font-size:13px;color:var(--text);flex:1;cursor:pointer}
+.toggle{position:relative;width:36px;height:20px;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:var(--border);border-radius:20px;transition:.3s}
+.slider:before{content:'';position:absolute;width:14px;height:14px;left:3px;bottom:3px;background:var(--muted);border-radius:50%;transition:.3s}
+.toggle input:checked + .slider{background:var(--accent)}
+.toggle input:checked + .slider:before{transform:translateX(16px);background:white}
+
+/* VOUCHER */
+.voucher-row{display:flex;gap:8px}
+.voucher-row .form-input{font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.05em}
+
+/* RINGKASAN HARGA */
+.ringkasan{background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;padding:14px}
+.ringkasan-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px}
+.ringkasan-row.total{border-top:1px solid var(--border);margin-top:8px;padding-top:12px}
+.ringkasan-row.total .label{font-size:16px;font-weight:700;color:var(--white)}
+.ringkasan-row.total .nilai{font-size:20px;font-weight:700;color:var(--accent);font-family:'DM Mono',monospace}
+.ringkasan-label{color:var(--muted)}
+.ringkasan-nilai{font-family:'DM Mono',monospace;color:var(--text)}
+.ringkasan-nilai.diskon{color:var(--green)}
+.ringkasan-nilai.ppn{color:var(--amber)}
+
+/* PEMBAYARAN */
+.metode-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.metode-btn{padding:10px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .15s;text-align:center}
+.metode-btn:hover{border-color:var(--accent);color:var(--accent)}
+.metode-btn.active{border-color:var(--accent);background:rgba(28,154,175,0.1);color:var(--white)}
+.metode-detail{display:none;margin-top:10px}
+.metode-detail.visible{display:block}
+
+/* PROSES BAYAR */
+.btn-bayar{width:100%;padding:14px;font-size:15px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;color:white;cursor:pointer;transition:opacity .15s,transform .1s;letter-spacing:.02em}
+.btn-bayar:hover:not(:disabled){opacity:.9;transform:translateY(-1px)}
+.btn-bayar:disabled{background:var(--border);color:var(--muted);cursor:not-allowed;transform:none}
+
+/* STRUK MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center}
+.overlay.visible{display:flex}
+.struk{background:white;border-radius:12px;padding:28px;width:340px;max-height:90vh;overflow-y:auto;color:#333}
+.struk-header{text-align:center;margin-bottom:16px}
+.struk-header h3{font-size:16px;font-weight:700;color:#111}
+.struk-header p{font-size:11px;color:#888;margin-top:3px;font-family:'DM Mono',monospace}
+.struk-divider{border:none;border-top:1px dashed #ddd;margin:12px 0}
+.struk-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+.struk-row.bold{font-weight:700;font-size:14px;margin-top:8px}
+.struk-row.total{font-size:16px;font-weight:700;color:#1C9AAF}
+.struk-footer{text-align:center;margin-top:16px;font-size:11px;color:#aaa}
+.btn-tutup-struk{width:100%;margin-top:16px;padding:10px;background:#1C9AAF;border:none;border-radius:8px;color:white;font-weight:600;font-size:13px;cursor:pointer}
+
+/* STATUS BAR */
+.status-bar{position:relative;z-index:1;padding:8px 24px;background:rgba(10,22,40,0.9);border-top:1px solid var(--border);font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);display:flex;gap:24px;flex-wrap:wrap}
+.status-bar strong{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <div class="logo-mark">POS</div>
+    <div>
+      <div class="logo-text">Aplikasi POS — PT Maju Bersama</div>
+      <div class="logo-sub">Point of Sale System</div>
+    </div>
+  </div>
+  <div class="nav-right">
+    <div class="kasir-info">Kasir: <span id="nama-kasir">Andi Pratama</span></div>
+    <div class="kasir-info">Cabang: <span>Denpasar</span></div>
+    <div class="nav-badge">localhost</div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main>
+
+  <!-- KIRI: INPUT DAN KERANJANG -->
+  <div class="panel-kiri">
+    <div class="section-title">Tambah Item ke Keranjang</div>
+
+    <!-- Input produk -->
+    <div class="input-produk">
+      <input class="form-input" type="text" id="kode-produk"
+        placeholder="Kode produk (contoh: BV123456)"
+        maxlength="8" autocomplete="off"
+        oninput="this.value=this.value.toUpperCase()">
+      <input class="form-input input-qty" type="number" id="jumlah-item"
+        placeholder="Qty" value="1">
+      <button class="btn btn-accent" id="tombol-tambah" onclick="tambahItem()">Tambah</button>
+    </div>
+
+    <!-- Pesan error / success input produk -->
+    <div class="pesan-error" id="error-produk">
+      <span>⚠</span><span id="error-produk-text">Error</span>
+    </div>
+    <div class="pesan-success" id="success-produk">
+      <span>✓</span><span id="success-produk-text">Item ditambahkan</span>
+    </div>
+
+    <!-- Tabel keranjang -->
+    <div class="section-title">Keranjang Belanja</div>
+    <table class="tabel-keranjang" id="tabel-keranjang">
+      <thead>
+        <tr>
+          <th>Produk</th>
+          <th>Harga</th>
+          <th style="text-align:center">Qty</th>
+          <th style="text-align:right">Subtotal</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody-keranjang">
+        <tr class="empty" id="baris-kosong">
+          <td colspan="5">Keranjang masih kosong — tambahkan produk di atas</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Tombol aksi -->
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline btn-sm" id="tombol-batal" onclick="batalTransaksi()" disabled>Batalkan Transaksi</button>
+    </div>
+  </div>
+
+  <!-- KANAN: RINGKASAN DAN PEMBAYARAN -->
+  <div class="panel-kanan">
+
+    <!-- Member toggle -->
+    <div>
+      <div class="section-title">Status Pelanggan</div>
+      <div class="member-row">
+        <label for="toggle-member">Pelanggan Member (diskon tambahan 3%)</label>
+        <label class="toggle">
+          <input type="checkbox" id="toggle-member" onchange="hitungUlang()">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Voucher -->
+    <div>
+      <div class="section-title">Kode Voucher (opsional)</div>
+      <div class="voucher-row">
+        <input class="form-input" type="text" id="kode-voucher"
+          placeholder="8 karakter alfanumerik" maxlength="8"
+          autocomplete="off"
+          oninput="this.value=this.value.toUpperCase()">
+        <button class="btn btn-outline" id="tombol-voucher" onclick="terapkanVoucher()">Terapkan</button>
+      </div>
+      <div class="pesan-error" id="error-voucher" style="margin-top:8px">
+        <span>⚠</span><span id="error-voucher-text">Error</span>
+      </div>
+      <div class="pesan-success" id="success-voucher" style="margin-top:8px">
+        <span>✓</span><span id="success-voucher-text">Voucher berhasil</span>
+      </div>
+    </div>
+
+    <!-- Ringkasan harga -->
+    <div>
+      <div class="section-title">Ringkasan Harga</div>
+      <div class="ringkasan">
+        <div class="ringkasan-row">
+          <span class="ringkasan-label">Subtotal</span>
+          <span class="ringkasan-nilai" id="display-subtotal">Rp 0</span>
+        </div>
+        <div class="ringkasan-row" id="row-diskon-qty" style="display:none">
+          <span class="ringkasan-label" id="label-diskon-qty">Diskon jumlah</span>
+          <span class="ringkasan-nilai diskon" id="display-diskon-qty">-Rp 0</span>
+        </div>
+        <div class="ringkasan-row" id="row-diskon-member" style="display:none">
+          <span class="ringkasan-label">Diskon member (3%)</span>
+          <span class="ringkasan-nilai diskon" id="display-diskon-member">-Rp 0</span>
+        </div>
+        <div class="ringkasan-row" id="row-diskon-voucher" style="display:none">
+          <span class="ringkasan-label" id="label-diskon-voucher">Diskon voucher</span>
+          <span class="ringkasan-nilai diskon" id="display-diskon-voucher">-Rp 0</span>
+        </div>
+        <div class="ringkasan-row">
+          <span class="ringkasan-label">PPN (11%)</span>
+          <span class="ringkasan-nilai ppn" id="display-ppn">Rp 0</span>
+        </div>
+        <div class="ringkasan-row total">
+          <span class="label">TOTAL</span>
+          <span class="nilai" id="display-total">Rp 0</span>
+        </div>
+      </div>
+      <!-- Pesan batas transaksi -->
+      <div class="pesan-error" id="error-batas" style="margin-top:8px">
+        <span>⚠</span><span id="error-batas-text">Total melebihi batas maksimal transaksi Rp 50.000.000</span>
+      </div>
+    </div>
+
+    <!-- Metode pembayaran -->
+    <div>
+      <div class="section-title">Metode Pembayaran</div>
+      <div class="metode-grid">
+        <button class="metode-btn" id="metode-tunai" onclick="pilihMetode('tunai')">💵 Tunai</button>
+        <button class="metode-btn" id="metode-kartu" onclick="pilihMetode('kartu')">💳 Kartu</button>
+        <button class="metode-btn" id="metode-qris" onclick="pilihMetode('qris')">📱 QRIS</button>
+        <button class="metode-btn" id="metode-voucher-pay" onclick="pilihMetode('voucher-pay')">🎫 Full Voucher</button>
+      </div>
+
+      <!-- Detail tunai -->
+      <div class="metode-detail" id="detail-tunai">
+        <input class="form-input" type="number" id="uang-tunai"
+          placeholder="Nominal uang diterima (Rp)" style="margin-top:8px"
+          oninput="hitungKembalian()">
+        <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:13px">
+          <span style="color:var(--muted)">Kembalian:</span>
+          <span id="display-kembalian" style="font-family:'DM Mono',monospace;color:var(--accent)">Rp 0</span>
+        </div>
+        <div class="pesan-error" id="error-tunai" style="margin-top:8px">
+          <span>⚠</span><span id="error-tunai-text">Uang tidak cukup</span>
+        </div>
+      </div>
+
+      <!-- Detail kartu -->
+      <div class="metode-detail" id="detail-kartu">
+        <input class="form-input" type="password" id="pin-kartu"
+          placeholder="PIN kartu (6 digit)" maxlength="6"
+          style="margin-top:8px;font-family:'DM Mono',monospace;letter-spacing:.2em">
+        <div class="pesan-error" id="error-kartu" style="margin-top:8px">
+          <span>⚠</span><span id="error-kartu-text">PIN kartu tidak valid</span>
+        </div>
+      </div>
+
+      <!-- Detail QRIS -->
+      <div class="metode-detail" id="detail-qris">
+        <div style="text-align:center;padding:16px;background:rgba(255,255,255,0.03);border:1px dashed var(--border);border-radius:8px;margin-top:8px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Scan QR Code untuk membayar</div>
+          <div style="font-size:28px;margin-bottom:8px">⬛⬛⬛</div>
+          <div id="qris-countdown" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--amber)"></div>
+        </div>
+        <div class="pesan-error" id="error-qris" style="margin-top:8px">
+          <span>⚠</span><span id="error-qris-text">Waktu konfirmasi QRIS habis</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tombol bayar -->
+    <button class="btn-bayar" id="tombol-bayar" onclick="prosesBayar()" disabled>
+      Proses Pembayaran
+    </button>
+
+    <!-- Pesan sukses bayar -->
+    <div class="pesan-success" id="success-bayar">
+      <span>✓</span><span id="success-bayar-text">Pembayaran berhasil</span>
+    </div>
+    <div class="pesan-error" id="error-bayar">
+      <span>⚠</span><span id="error-bayar-text">Pembayaran gagal</span>
+    </div>
+
+  </div><!-- /panel-kanan -->
+</main>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <span><strong>Info QA Testing</strong></span>
+  <span>Kode produk valid: <strong>BV123456</strong> (Beras Varietas, Rp35.000), <strong>MN654321</strong> (Minyak Nabati, Rp28.000), <strong>GS111111</strong> (Gula Semut, Rp45.000)</span>
+  <span>Voucher valid: <strong>DISC10PCT</strong> (10%), <strong>SAVE5RIB</strong> (Rp5.000 off) | Expired: <strong>OLDVOUCHER</strong></span>
+  <span>PIN kartu valid: <strong>123456</strong></span>
+  <span>Item keranjang: <strong id="status-jumlah-item">0</strong> | Total: <strong id="status-total">Rp 0</strong></span>
+</div>
+
+<!-- STRUK MODAL -->
+<div class="overlay" id="overlay-struk">
+  <div class="struk" id="struk-content">
+    <div class="struk-header">
+      <h3>PT Maju Bersama</h3>
+      <p id="struk-cabang">Cabang Denpasar</p>
+      <p id="struk-waktu"></p>
+      <p id="struk-no-transaksi" style="font-weight:600;margin-top:4px"></p>
+    </div>
+    <hr class="struk-divider">
+    <div id="struk-items"></div>
+    <hr class="struk-divider">
+    <div id="struk-ringkasan"></div>
+    <hr class="struk-divider">
+    <div id="struk-pembayaran"></div>
+    <div class="struk-footer">Terima kasih telah berbelanja!<br>Barang yang sudah dibeli tidak dapat dikembalikan<br>lebih dari 7 hari sejak tanggal pembelian.</div>
+    <button class="btn-tutup-struk" onclick="tutupStruk()">Tutup dan Transaksi Baru</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// DATA MASTER PRODUK
+// ══════════════════════════════════════════════════════════════════
+const PRODUK = {
+  'BV123456': { nama: 'Beras Varietas Premium', harga: 35000, stok: 100 },
+  'MN654321': { nama: 'Minyak Nabati 1L',        harga: 28000, stok: 50  },
+  'GS111111': { nama: 'Gula Semut Organik',       harga: 45000, stok: 75  },
+};
+
+// VOUCHER
+const VOUCHER = {
+  'DISC10PCT':  { tipe: 'persen',  nilai: 10,   expired: false },
+  'SAVE5RIB':   { tipe: 'nominal', nilai: 5000,  expired: false },
+  'OLDVOUCHER': { tipe: 'persen',  nilai: 5,    expired: true  },
+};
+
+// STATE
+let keranjang      = [];
+let voucherAktif   = null;
+let metodeBayar    = null;
+let qrisTimer      = null;
+let noTransaksi    = 1;
+
+// ══════════════════════════════════════════════════════════════════
+// VALIDASI KODE PRODUK
+// ══════════════════════════════════════════════════════════════════
+function validasiKodeProduk(kode) {
+  const pola = /^[A-Z]{2}\d{6}$/;
+  if (!pola.test(kode)) return { valid: false, msg: 'Format kode produk tidak valid. Harus 2 huruf kapital diikuti 6 angka.' };
+  if (!PRODUK[kode])    return { valid: false, msg: `Kode produk ${kode} tidak ditemukan dalam sistem.` };
+  if (PRODUK[kode].stok === 0) return { valid: false, msg: `Stok produk ${kode} habis.` };
+  return { valid: true };
+}
+
+function validasiJumlah(jumlah) {
+  if (jumlah === '' || jumlah === null) return { valid: false, msg: 'Jumlah item harus diisi.' };
+  const n = Number(jumlah);
+  if (isNaN(n) || !Number.isInteger(n)) return { valid: false, msg: 'Jumlah item harus bilangan bulat.' };
+  if (n < 1)   return { valid: false, msg: 'Jumlah item minimum adalah 1.' };
+  if (n > 999) return { valid: false, msg: 'Jumlah item maksimum adalah 999 per baris.' };
+  return { valid: true, n };
+}
+
+// ══════════════════════════════════════════════════════════════════
+// KALKULASI
+// ══════════════════════════════════════════════════════════════════
+function hitungDiskonQty(totalQty) {
+  if (totalQty >= 10) return 0.10;
+  if (totalQty >= 5)  return 0.05;
+  return 0;
+}
+
+function hitungTotal() {
+  const isMember   = document.getElementById('toggle-member').checked;
+  const adaVoucher = voucherAktif !== null;
+
+  let subtotal      = 0;
+  let totalQty      = 0;
+
+  keranjang.forEach(item => {
+    subtotal  += item.harga * item.qty;
+    totalQty  += item.qty;
+  });
+
+  const pctDiskonQty     = hitungDiskonQty(totalQty);
+  const diskonQty        = subtotal * pctDiskonQty;
+  let   totalSetelahDiskon = subtotal - diskonQty;
+
+  // Diskon member — tidak bisa digabung dengan voucher
+  let diskonMember = 0;
+  if (isMember && !adaVoucher) {
+    diskonMember       = totalSetelahDiskon * 0.03;
+    totalSetelahDiskon = totalSetelahDiskon - diskonMember;
+  }
+
+  // Diskon voucher
+  let diskonVoucher = 0;
+  if (adaVoucher) {
+    const v = VOUCHER[voucherAktif];
+    diskonVoucher      = v.tipe === 'persen'
+      ? totalSetelahDiskon * (v.nilai / 100)
+      : Math.min(v.nilai, totalSetelahDiskon);
+    totalSetelahDiskon = totalSetelahDiskon - diskonVoucher;
+  }
+
+  const ppn          = totalSetelahDiskon * 0.11;
+  const totalDenganPpn = totalSetelahDiskon + ppn;
+  const totalAkhir   = Math.ceil(totalDenganPpn / 100) * 100;
+  const melebihi     = totalAkhir > 50000000;
+
+  return { subtotal, totalQty, pctDiskonQty, diskonQty, diskonMember, diskonVoucher, ppn, totalAkhir, melebihi };
+}
+
+// ══════════════════════════════════════════════════════════════════
+// UI UPDATE
+// ══════════════════════════════════════════════════════════════════
+function hitungUlang() {
+  if (keranjang.length === 0) {
+    resetRingkasan();
+    document.getElementById('tombol-bayar').disabled = true;
+    return;
+  }
+
+  const h = hitungTotal();
+
+  // Subtotal
+  document.getElementById('display-subtotal').textContent = formatRp(h.subtotal);
+
+  // Diskon qty
+  const rowDQ = document.getElementById('row-diskon-qty');
+  if (h.diskonQty > 0) {
+    rowDQ.style.display = 'flex';
+    document.getElementById('label-diskon-qty').textContent = `Diskon qty (${h.pctDiskonQty * 100}%)`;
+    document.getElementById('display-diskon-qty').textContent = '-' + formatRp(h.diskonQty);
+  } else { rowDQ.style.display = 'none'; }
+
+  // Diskon member
+  const rowDM = document.getElementById('row-diskon-member');
+  if (h.diskonMember > 0) {
+    rowDM.style.display = 'flex';
+    document.getElementById('display-diskon-member').textContent = '-' + formatRp(h.diskonMember);
+  } else { rowDM.style.display = 'none'; }
+
+  // Diskon voucher
+  const rowDV = document.getElementById('row-diskon-voucher');
+  if (h.diskonVoucher > 0) {
+    rowDV.style.display = 'flex';
+    const v = VOUCHER[voucherAktif];
+    document.getElementById('label-diskon-voucher').textContent =
+      `Diskon voucher ${voucherAktif} (${v.tipe === 'persen' ? v.nilai + '%' : formatRp(v.nilai)})`;
+    document.getElementById('display-diskon-voucher').textContent = '-' + formatRp(h.diskonVoucher);
+  } else { rowDV.style.display = 'none'; }
+
+  // PPN
+  document.getElementById('display-ppn').textContent = formatRp(h.ppn);
+
+  // Total
+  document.getElementById('display-total').textContent = formatRp(h.totalAkhir);
+
+  // Status bar
+  document.getElementById('status-total').textContent = formatRp(h.totalAkhir);
+
+  // Batas transaksi
+  const errBatas = document.getElementById('error-batas');
+  if (h.melebihi) {
+    errBatas.classList.add('visible');
+    document.getElementById('tombol-bayar').disabled = true;
+  } else {
+    errBatas.classList.remove('visible');
+    document.getElementById('tombol-bayar').disabled = (metodeBayar === null);
+  }
+
+  // Update kembalian jika tunai
+  if (metodeBayar === 'tunai') hitungKembalian();
+}
+
+function renderKeranjang() {
+  const tbody = document.getElementById('tbody-keranjang');
+
+  // Bersihkan semua baris data (kecuali template baris-kosong)
+  const barisData = tbody.querySelectorAll('tr:not(#baris-kosong)');
+  barisData.forEach(tr => tr.remove());
+
+  const kosong = document.getElementById('baris-kosong');
+
+  if (keranjang.length === 0) {
+    kosong.style.display = '';
+    document.getElementById('status-jumlah-item').textContent = '0';
+    document.getElementById('tombol-batal').disabled = true;
+    resetRingkasan();
+    return;
+  }
+
+  kosong.style.display = 'none';
+
+  const totalQtyAll = keranjang.reduce((s, i) => s + i.qty, 0);
+  const pct = hitungDiskonQty(totalQtyAll);
+
+  keranjang.forEach((item, idx) => {
+    const subtotalItem = item.harga * item.qty;
+    const tr = document.createElement('tr');
+    tr.id = `row-item-${idx}`;
+    tr.innerHTML = `
+      <td>
+        <div class="item-nama">${item.nama}
+          ${pct > 0 ? `<span class="badge-diskon">-${pct*100}%</span>` : ''}
+        </div>
+        <div class="item-kode">${item.kode}</div>
+      </td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${formatRp(item.harga)}</td>
+      <td style="text-align:center;font-family:'DM Mono',monospace">${item.qty}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace;font-size:12px">${formatRp(subtotalItem)}</td>
+      <td><button class="hapus-btn" onclick="hapusItem(${idx})">Hapus</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('status-jumlah-item').textContent = totalQtyAll;
+  document.getElementById('tombol-batal').disabled = false;
+  hitungUlang();
+}
+
+function resetRingkasan() {
+  ['display-subtotal','display-ppn','display-total'].forEach(id => {
+    document.getElementById(id).textContent = 'Rp 0';
+  });
+  ['row-diskon-qty','row-diskon-member','row-diskon-voucher'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  document.getElementById('status-total').textContent = 'Rp 0';
+}
+
+// ══════════════════════════════════════════════════════════════════
+// AKSI KERANJANG
+// ══════════════════════════════════════════════════════════════════
+function tambahItem() {
+  clearPesan('error-produk');
+  clearPesan('success-produk');
+
+  const kode   = document.getElementById('kode-produk').value.trim().toUpperCase();
+  const qtyEl  = document.getElementById('jumlah-item');
+  // Gunakan valueAsNumber untuk menghindari masalah browser dengan input type="number"
+  const jumlah = qtyEl.valueAsNumber || Number(qtyEl.value) || 0;
+
+  const cekKode = validasiKodeProduk(kode);
+  if (!cekKode.valid) {
+    showPesan('error-produk', 'error-produk-text', cekKode.msg);
+    document.getElementById('kode-produk').classList.add('error');
+    return;
+  }
+
+  const cekQty = validasiJumlah(jumlah);
+  if (!cekQty.valid) {
+    showPesan('error-produk', 'error-produk-text', cekQty.msg);
+    qtyEl.classList.add('error');
+    return;
+  }
+
+  document.getElementById('kode-produk').classList.remove('error');
+  qtyEl.classList.remove('error');
+
+  // Cek apakah sudah ada di keranjang — tambah qty
+  const existing = keranjang.find(i => i.kode === kode);
+  if (existing) {
+    existing.qty += cekQty.n;
+    showPesan('success-produk', 'success-produk-text', `Qty ${PRODUK[kode].nama} diperbarui menjadi ${existing.qty}.`);
+  } else {
+    keranjang.push({ kode, nama: PRODUK[kode].nama, harga: PRODUK[kode].harga, qty: cekQty.n });
+    showPesan('success-produk', 'success-produk-text', `${PRODUK[kode].nama} berhasil ditambahkan ke keranjang.`);
+  }
+
+  document.getElementById('kode-produk').value  = '';
+  qtyEl.value  = '1';
+  renderKeranjang();
+}
+
+function hapusItem(idx) {
+  keranjang.splice(idx, 1);
+  if (keranjang.length === 0) {
+    resetRingkasan();
+    metodeBayar = null;
+    document.querySelectorAll('.metode-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.metode-detail').forEach(d => d.classList.remove('visible'));
+    document.getElementById('tombol-bayar').disabled = true;
+  }
+  renderKeranjang();
+}
+
+function batalTransaksi() {
+  keranjang     = [];
+  voucherAktif  = null;
+  metodeBayar   = null;
+  document.getElementById('toggle-member').checked = false;
+  document.getElementById('kode-voucher').value    = '';
+  document.querySelectorAll('.metode-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.metode-detail').forEach(d => d.classList.remove('visible'));
+  clearPesan('error-voucher'); clearPesan('success-voucher');
+  clearPesan('success-bayar'); clearPesan('error-bayar');
+  resetRingkasan();
+  renderKeranjang();
+  document.getElementById('tombol-bayar').disabled = true;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// VOUCHER
+// ══════════════════════════════════════════════════════════════════
+function terapkanVoucher() {
+  clearPesan('error-voucher'); clearPesan('success-voucher');
+  const kode = document.getElementById('kode-voucher').value.trim().toUpperCase();
+
+  if (kode.length !== 8 || !/^[A-Z0-9]+$/.test(kode)) {
+    showPesan('error-voucher','error-voucher-text','Kode voucher harus 8 karakter alfanumerik.');
+    return;
+  }
+  if (!VOUCHER[kode]) {
+    showPesan('error-voucher','error-voucher-text','Kode voucher tidak ditemukan atau tidak berlaku.');
+    return;
+  }
+  if (VOUCHER[kode].expired) {
+    showPesan('error-voucher','error-voucher-text','Kode voucher sudah kadaluarsa dan tidak dapat digunakan.');
+    return;
+  }
+  if (document.getElementById('toggle-member').checked) {
+    showPesan('error-voucher','error-voucher-text','Voucher tidak dapat digabungkan dengan diskon member. Nonaktifkan status member terlebih dahulu.');
+    return;
+  }
+
+  voucherAktif = kode;
+  const v = VOUCHER[kode];
+  showPesan('success-voucher','success-voucher-text',
+    `Voucher ${kode} berhasil diterapkan: diskon ${v.tipe === 'persen' ? v.nilai + '%' : formatRp(v.nilai) + ' off'}.`);
+  hitungUlang();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// PEMBAYARAN
+// ══════════════════════════════════════════════════════════════════
+function pilihMetode(metode) {
+  metodeBayar = metode;
+  document.querySelectorAll('.metode-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('metode-' + (metode === 'voucher-pay' ? 'voucher-pay' : metode)).classList.add('active');
+  document.querySelectorAll('.metode-detail').forEach(d => d.classList.remove('visible'));
+
+  if (metode === 'tunai')  document.getElementById('detail-tunai').classList.add('visible');
+  if (metode === 'kartu')  document.getElementById('detail-kartu').classList.add('visible');
+  if (metode === 'qris') {
+    document.getElementById('detail-qris').classList.add('visible');
+    mulaiQrisCountdown();
+  }
+
+  const h = hitungTotal();
+  if (!h.melebihi && keranjang.length > 0) {
+    document.getElementById('tombol-bayar').disabled = false;
+  }
+}
+
+function hitungKembalian() {
+  const uang  = parseFloat(document.getElementById('uang-tunai').value) || 0;
+  const h     = hitungTotal();
+  const kembalian = uang - h.totalAkhir;
+
+  clearPesan('error-tunai');
+  if (uang > 0 && kembalian < 0) {
+    showPesan('error-tunai','error-tunai-text','Uang yang diterima kurang dari total tagihan.');
+    document.getElementById('display-kembalian').textContent = 'Rp 0';
+  } else {
+    document.getElementById('display-kembalian').textContent = formatRp(Math.max(0, kembalian));
+  }
+}
+
+function mulaiQrisCountdown() {
+  if (qrisTimer) clearInterval(qrisTimer);
+  let sisa = 30;
+  const el = document.getElementById('qris-countdown');
+  el.textContent = `Menunggu konfirmasi: ${sisa} detik`;
+  qrisTimer = setInterval(() => {
+    sisa--;
+    el.textContent = `Menunggu konfirmasi: ${sisa} detik`;
+    if (sisa <= 0) {
+      clearInterval(qrisTimer);
+      el.textContent = 'Waktu habis';
+      showPesan('error-qris','error-qris-text','Waktu konfirmasi QRIS habis. Pilih metode lain atau coba lagi.');
+      document.getElementById('tombol-bayar').disabled = true;
+    }
+  }, 1000);
+}
+
+function prosesBayar() {
+  clearPesan('error-bayar'); clearPesan('success-bayar');
+
+  if (keranjang.length === 0) {
+    showPesan('error-bayar','error-bayar-text','Keranjang masih kosong.');
+    return;
+  }
+
+  const h = hitungTotal();
+  if (h.melebihi) {
+    showPesan('error-bayar','error-bayar-text','Total transaksi melebihi batas maksimal Rp 50.000.000.');
+    return;
+  }
+
+  // Validasi per metode
+  if (metodeBayar === 'tunai') {
+    const uang = parseFloat(document.getElementById('uang-tunai').value) || 0;
+    if (uang < h.totalAkhir) {
+      showPesan('error-bayar','error-bayar-text','Uang yang diterima kurang dari total tagihan.');
+      return;
+    }
+  }
+
+  if (metodeBayar === 'kartu') {
+    const pin = document.getElementById('pin-kartu').value;
+    if (pin.length !== 6 || !/^\d{6}$/.test(pin)) {
+      showPesan('error-kartu','error-kartu-text','PIN kartu harus 6 digit angka.');
+      showPesan('error-bayar','error-bayar-text','PIN kartu tidak valid.');
+      return;
+    }
+    if (pin !== '123456') {
+      showPesan('error-kartu','error-kartu-text','PIN kartu salah.');
+      showPesan('error-bayar','error-bayar-text','Pembayaran kartu ditolak — PIN salah.');
+      return;
+    }
+  }
+
+  // Sukses — tampilkan struk
+  tampilkanStruk(h);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// STRUK
+// ══════════════════════════════════════════════════════════════════
+function tampilkanStruk(h) {
+  const now = new Date();
+  document.getElementById('struk-waktu').textContent =
+    now.toLocaleDateString('id-ID') + ' ' + now.toLocaleTimeString('id-ID');
+  document.getElementById('struk-no-transaksi').textContent =
+    'No. Transaksi: TRX' + String(noTransaksi).padStart(6,'0');
+  noTransaksi++;
+
+  // Items
+  let itemsHtml = '';
+  keranjang.forEach(item => {
+    itemsHtml += `
+      <div class="struk-row">
+        <span>${item.nama}</span>
+        <span></span>
+      </div>
+      <div class="struk-row" style="color:#888;font-size:11px">
+        <span>${item.qty} x ${formatRpStruk(item.harga)}</span>
+        <span>${formatRpStruk(item.harga * item.qty)}</span>
+      </div>`;
+  });
+  document.getElementById('struk-items').innerHTML = itemsHtml;
+
+  // Ringkasan
+  let ringkasanHtml = `<div class="struk-row"><span>Subtotal</span><span>${formatRpStruk(h.subtotal)}</span></div>`;
+  if (h.diskonQty > 0)     ringkasanHtml += `<div class="struk-row"><span>Diskon qty (${h.pctDiskonQty*100}%)</span><span>-${formatRpStruk(h.diskonQty)}</span></div>`;
+  if (h.diskonMember > 0)  ringkasanHtml += `<div class="struk-row"><span>Diskon member (3%)</span><span>-${formatRpStruk(h.diskonMember)}</span></div>`;
+  if (h.diskonVoucher > 0) ringkasanHtml += `<div class="struk-row"><span>Diskon voucher</span><span>-${formatRpStruk(h.diskonVoucher)}</span></div>`;
+  ringkasanHtml += `<div class="struk-row"><span>PPN (11%)</span><span>${formatRpStruk(h.ppn)}</span></div>`;
+  ringkasanHtml += `<div class="struk-row bold total"><span>TOTAL</span><span>${formatRpStruk(h.totalAkhir)}</span></div>`;
+  document.getElementById('struk-ringkasan').innerHTML = ringkasanHtml;
+
+  // Pembayaran
+  let bayarHtml = `<div class="struk-row"><span>Metode</span><span>${metodeBayar.toUpperCase()}</span></div>`;
+  if (metodeBayar === 'tunai') {
+    const uang = parseFloat(document.getElementById('uang-tunai').value) || 0;
+    bayarHtml += `<div class="struk-row"><span>Uang diterima</span><span>${formatRpStruk(uang)}</span></div>`;
+    bayarHtml += `<div class="struk-row bold"><span>Kembalian</span><span>${formatRpStruk(uang - h.totalAkhir)}</span></div>`;
+  }
+  document.getElementById('struk-pembayaran').innerHTML = bayarHtml;
+
+  document.getElementById('overlay-struk').classList.add('visible');
+  document.getElementById('success-bayar-text').textContent = 'Pembayaran berhasil. Struk ditampilkan.';
+  document.getElementById('success-bayar').classList.add('visible');
+}
+
+function tutupStruk() {
+  document.getElementById('overlay-struk').classList.remove('visible');
+  batalTransaksi();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════════
+function formatRp(n)     { return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
+function formatRpStruk(n){ return 'Rp' + Math.round(n).toLocaleString('id-ID'); }
+
+function showPesan(boxId, textId, msg) {
+  const el = document.getElementById(boxId);
+  document.getElementById(textId).textContent = msg;
+  el.classList.add('visible');
+}
+function clearPesan(boxId) {
+  document.getElementById(boxId).classList.remove('visible');
+}
+</script>
+</body>
+</html>
