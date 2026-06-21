@@ -56,8 +56,9 @@ def test_input_negatif_raise_error():
 def test_melebihi_batas_transaksi():
     """Input yang menghasilkan total di atas Rp 50 juta — harus raise ValueError"""
     with pytest.raises(ValueError, match="Total melebihi batas maksimal transaksi"):
-        # 500 item * Rp100.000 = Rp50 Juta (Setelah PPN 11% pasti tembus > Rp50 Juta)
-        hitung_total_transaksi(jumlah_item=500, harga_satuan=100000, is_member=False, kode_voucher=None)
+        # 600 item * Rp100.000 = Rp60 Juta
+        # Diskon 10% -> Rp54 Juta. Ditambah PPN 11% pasti jauh di atas Rp50 Juta!
+        hitung_total_transaksi(jumlah_item=600, harga_satuan=100000, is_member=False, kode_voucher=None)
 
 
 # ==============================================================================
